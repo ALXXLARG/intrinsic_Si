@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="An interactive offline teaching demonstration of electron–hole pair generation and hole motion in intrinsic silicon.">
+  <title>Intrinsic Silicon | Electron–Hole Playground</title>
+  <style>
+    :root {
+      --ink:#18273c; --muted:#64758c; --paper:#f4f7fb; --card:#fff;
+      --line:#e3eaf1; --cyan:#147dbd; --cyan-soft:#e7f5ff;
+      --orange:#ec8e36; --orange-soft:#fff2e5;
+      --navy:#09182b; --ring:0 0 0 3px rgba(25,144,217,.20);
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; color:var(--ink); background:radial-gradient(circle at 3% 2%,#e8f4fd 0,transparent 34%),var(--paper); }
+    button,input { font:inherit; }
+    button { cursor:pointer; }
+    button:focus-visible,input:focus-visible { outline:3px solid #46a7e9; outline-offset:3px; }
+    .shell { max-width:1390px; margin:auto; padding:29px clamp(16px,3vw,42px) 38px; }
+    .topline { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
+    .eyebrow { font-size:11px; font-weight:850; letter-spacing:.18em; color:#276b98; }
+    .course-pill { color:#366c7c; background:#e9f5f8; border:1px solid #cce6ec; padding:7px 11px; border-radius:50px; font-size:12px; font-weight:750; white-space:nowrap; }
+    h1 { margin:0; font-size:clamp(28px,3.15vw,42px); font-weight:820; line-height:1.15; letter-spacing:-.047em; }
+    h1 span { color:#1689c7; }
+    .subtitle { max-width:870px; font-size:14px; line-height:1.7; color:#5b6f87; margin:11px 0 22px; }
+    .workspace { display:grid; grid-template-columns:minmax(0,1fr) 335px; gap:18px; align-items:start; }
+    .stage-card { border-radius:20px; overflow:hidden; background:var(--navy); border:1px solid #1b3652; box-shadow:0 12px 38px rgba(23,49,74,.12); }
+    .stage-top { min-height:55px; border-bottom:1px solid rgba(194,226,246,.12); padding:13px 20px; display:flex; align-items:center; gap:12px; justify-content:space-between; flex-wrap:wrap; }
+    .stage-label { color:#d7e8f6; font-size:12px; font-weight:760; letter-spacing:.09em; }
+    .stage-status { display:inline-flex; align-items:center; gap:8px; color:#94b4cb; font-size:12px; }
+    .status-dot { width:7px; height:7px; border-radius:50%; background:#7f92a5; box-shadow:0 0 0 3px rgba(127,146,165,.14); }
+    .status-dot.live { background:#2dd6b1; box-shadow:0 0 0 3px rgba(45,214,177,.11); }
+    .stage-figure { position:relative; padding:4px 9px 0; }
+    #lattice { width:100%; height:auto; display:block; overflow:visible; user-select:none; -webkit-user-select:none; touch-action:manipulation; }
+    .stage-footer { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:13px 17px 15px; border-top:1px solid rgba(194,226,246,.11); flex-wrap:wrap; }
+    .legend { display:flex; align-items:center; column-gap:20px; row-gap:8px; flex-wrap:wrap; color:#b3c7da; font-size:11px; }
+    .legend-item { display:inline-flex; align-items:center; gap:7px; }
+    .legend-symbol { display:inline-block; border-radius:50%; flex:0 0 auto; }
+    .legend-symbol.atom { width:15px;height:15px;background:#1e5375;border:2px solid #5297bb; }
+    .legend-symbol.e { width:11px;height:11px;background:#58ccfa;box-shadow:0 0 8px #2498cc; }
+    .legend-symbol.h { width:14px;height:14px;border:2px solid #ffa74e;background:rgba(239,137,51,.24);box-shadow:0 0 8px #ef9737; }
+    .legend-symbol.valid { width:15px;height:15px;border:2px solid #60e6d1; }
+    .stage-hint { color:#8cabc1; font-size:11px; }
+    .dashboard { display:flex; flex-direction:column; gap:12px; }
+    .panel { border:1px solid var(--line); background:var(--card); border-radius:17px; padding:17px; box-shadow:0 4px 18px rgba(38,70,102,.035); }
+    .panel-title { color:#294159; font-size:12px; letter-spacing:.06em; font-weight:820; text-transform:uppercase; margin:0 0 14px; display:flex; align-items:center; gap:8px; }
+    .panel-title .number { width:22px;height:22px;border-radius:7px;display:grid;place-items:center;background:#edf5fb;color:#3189bd;font-size:11px;letter-spacing:0; }
+    .primary-btn, .outline-btn { display:flex; width:100%; align-items:center; justify-content:center; gap:8px; border-radius:11px; padding:12px 14px; font-size:13px; font-weight:760; border:1px solid transparent; transition:background .18s,transform .18s,border-color .18s; }
+    .primary-btn { background:linear-gradient(110deg,#1389cf,#1169ae); color:#fff; box-shadow:0 5px 10px rgba(24,132,191,.18); }
+    .primary-btn:hover:not(:disabled) { background:linear-gradient(110deg,#199be2,#157bc0); transform:translateY(-1px); }
+    .outline-btn { color:#3f6076; background:#fff; border-color:#dae6ef; }
+    .outline-btn:hover:not(:disabled) { background:#f3f8fc; }
+    button:disabled { cursor:not-allowed; opacity:.47; box-shadow:none; transform:none; }
+    .small-help { color:#738399; font-size:12px; line-height:1.55; margin:10px 1px 0; }
+    .mode-switch { background:#eef3f8; border:1px solid #e0e9f1; border-radius:12px; padding:4px; display:grid; grid-template-columns:1fr 1fr; gap:4px; }
+    .mode-btn { padding:10px 6px; border:0; background:transparent; border-radius:9px; color:#687f95; font-weight:780; font-size:12px; }
+    .mode-btn.active { background:white; color:#207cae; box-shadow:0 2px 7px rgba(31,75,104,.08); }
+    .slider-header { display:flex; justify-content:space-between; align-items:center; margin:17px 0 10px; font-size:12px; font-weight:710; }
+    #speedValue { font-weight:850; font-size:14px; color:#1386c6; font-variant-numeric:tabular-nums; }
+    input[type=range] { display:block; width:100%; margin:0; accent-color:#168cce; cursor:pointer; }
+    .range-ends { display:flex; justify-content:space-between; color:#8392a4; font-size:10px; margin-top:8px; }
+    .row-buttons { display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:15px; }
+    .row-buttons .outline-btn { padding:10px 6px; font-size:12px; }
+    .stats { display:grid;grid-template-columns:repeat(3,1fr);gap:8px; }
+    .stat { border-radius:10px; background:#f3f8fc; padding:12px 7px; text-align:center; }
+    .stat strong { display:block; color:#154c72; font-size:23px;line-height:1.14; font-weight:840; font-variant-numeric:tabular-nums; }
+    .stat span { display:block; margin-top:5px; color:#75869a; font-size:10px; font-weight:650; }
+    .instruction { border-left:3px solid #e49b42; background:#fff8ef; border-radius:0 9px 9px 0; padding:11px 12px; color:#866032; font-size:12px; line-height:1.6; margin-top:13px; min-height:59px; }
+    .caption-grid { display:grid; grid-template-columns:minmax(0,1fr) 335px; align-items:start; gap:18px; margin-top:18px; }
+    .explain { padding:17px 19px; border:1px solid #e0e9f1; border-radius:16px; background:#fff; }
+    .explain h2 { margin:0 0 10px; font-size:16px; letter-spacing:-.015em; }
+    .explain p { font-size:12px; line-height:1.72; color:#64758c; margin:0; }
+    .model-note { background:#edf4f9; border:1px solid #d9e6f1; border-radius:13px; padding:16px 17px; font-size:12px; color:#5a7187; line-height:1.63; }
+    .model-note strong { color:#315b79; }
+    .motion-diagram { display:flex; gap:9px; align-items:center; flex-wrap:wrap; margin:13px 0 4px; }
+    .motion-chip { background:#f1f8fc; border:1px solid #deedf5; border-radius:9px; padding:8px 10px; color:#316983; font-size:12px; font-weight:750; }
+    .motion-chip.orange { background:#fff4e9; border-color:#ffe3c2; color:#9e631e; }
+    .motion-separator { font-size:16px;color:#9aacbc; }
+    .svg-label { font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; font-weight:750; }
+    .atom-node { fill:#113a56; stroke:#3c779a;stroke-width:1.65; }
+    .atom-text { fill:#a7daef; font-size:11px; text-anchor:middle; dominant-baseline:middle; font-weight:790;pointer-events:none; }
+    .bond-line { stroke:#315773; stroke-width:2; opacity:.69; }
+    .electron-pair .electron { fill:#50b8e9; stroke:#a8eaff; stroke-width:.8; filter:url(#electronGlow); }
+    .electron-pair .hit-area { fill:transparent; pointer-events:all; }
+    .electron-pair.eligible { cursor:pointer; }
+    .electron-pair.eligible .electron { fill:#69f4dc; stroke:#defff4; stroke-width:1.15; }
+    .electron-pair.eligible .halo { fill:rgba(41,221,192,.075);stroke:#65e9d6;stroke-width:1.5;stroke-dasharray:4 3; }
+    .electron-pair.eligible:hover .halo,.electron-pair.eligible:focus .halo { fill:rgba(41,221,192,.23); stroke-width:2.6; }
+    .electron-pair:focus { outline:none; }
+    .vacancy-halo { fill:rgba(255,149,56,.12);stroke:#ffa74e;stroke-width:2.15; }
+    .vacancy-core { fill:#07182a;stroke:#ffb766;stroke-width:2.5; }
+    .vacancy-plus { fill:#ffb766; font-size:13px;font-weight:870;text-anchor:middle;dominant-baseline:central;pointer-events:none; }
+    .hole-pulse { transform-box:fill-box;transform-origin:center;animation:holePulse 1.6s infinite ease-in-out; }
+    @keyframes holePulse { 0%,100%{opacity:.36;transform:scale(.95)}50%{opacity:.85;transform:scale(1.35)} }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important;} }
+    @media (max-width:1040px) { .workspace,.caption-grid{grid-template-columns:minmax(0,1fr) 300px} }
+    @media (max-width:800px) { .shell{padding-top:19px}.workspace,.caption-grid{grid-template-columns:1fr}.dashboard{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard .panel:last-child{grid-column:1 / -1}.caption-grid{margin-top:12px}.stage-hint{display:none} }
+    @media (max-width:560px) { .dashboard{display:flex}.shell{padding-inline:12px}.stage-top{padding:12px}.stage-footer{padding-inline:12px}.legend{gap:9px;font-size:10px}.subtitle{font-size:13px}.motion-diagram{gap:7px}.motion-chip{font-size:11px;padding:7px} }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="topline">
+      <span class="eyebrow">INTERACTIVE SEMICONDUCTOR PHYSICS</span>
+      <span class="course-pill">INTRINSIC Si · NO DOPANTS</span>
+    </div>
+    <h1>See how a <span>hole moves</span> in silicon.</h1>
+    <p class="subtitle">Generate an electron–hole pair, then choose the nearby electrons that fill the vacancy. Watch the <strong>electron</strong> move one way while the <strong>hole</strong> appears to move the other way.</p>
+
+    <div class="workspace">
+      <section class="stage-card" aria-label="Interactive silicon lattice model">
+        <div class="stage-top">
+          <span class="stage-label">SILICON LATTICE <span style="color:#668ca8;font-weight:500">/</span> BOND-ELECTRON MODEL</span>
+          <span class="stage-status"><span id="statusDot" class="status-dot"></span><span id="stageStatus">Ready to generate a pair</span></span>
+        </div>
+        <div class="stage-figure">
+          <svg id="lattice" viewBox="0 0 900 572" aria-label="Schematic silicon lattice showing Si atoms, bonding electrons, a conduction electron and a movable hole">
+            <defs>
+              <filter id="electronGlow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur in="SourceGraphic" stdDeviation="1.15" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              <filter id="largeGlow" x="-160%" y="-160%" width="420%" height="420%"><feGaussianBlur stdDeviation="8"/></filter>
+              <linearGradient id="rail" x1="0" x2="1"><stop offset="0" stop-color="#112c43"/><stop offset="1" stop-color="#163b51"/></linearGradient>
+              <marker id="holeArrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6" fill="none" stroke="#ffaa53" stroke-width="1.5"/></marker>
+              <marker id="electronArrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6" fill="none" stroke="#70deff" stroke-width="1.5"/></marker>
+            </defs>
+            <rect x="15" y="14" width="870" height="112" rx="18" fill="url(#rail)" stroke="#285069" stroke-width="1"/>
+            <text x="36" y="40" fill="#86bbda" font-size="12" class="svg-label" letter-spacing="1.7">CONDUCTION BAND</text>
+            <text id="conductionCaption" x="36" y="66" fill="#6f97ad" font-size="12">No free electron yet</text>
+            <path d="M35 103 H866" stroke="#30607c" stroke-width="1.4" stroke-dasharray="3 7" opacity=".6"/>
+            <g id="freeElectron" style="display:none" aria-label="mobile conduction electron">
+              <circle cx="0" cy="0" r="19" fill="#40c5ff" opacity=".15" filter="url(#largeGlow)"/>
+              <circle cx="0" cy="0" r="10.2" fill="#47d2fa" opacity=".20"/>
+              <circle cx="0" cy="0" r="6.7" fill="#6de2ff" stroke="#d1f8ff" stroke-width="1.5"/>
+              <text x="14" y="-11" fill="#b8edff" font-size="13" font-weight="760">e<tspan baseline-shift="super" font-size="9">−</tspan></text>
+            </g>
+            <text x="25" y="155" fill="#607e96" font-size="11" class="svg-label" letter-spacing="1.4">VALENCE BONDS · SHARED ELECTRONS</text>
+            <text x="876" y="155" text-anchor="end" fill="#547187" font-size="11">2D schematic, not to scale</text>
+            <g id="gridDecor"></g>
+            <g id="bondLines"></g>
+            <g id="atomLayer"></g>
+            <g id="trailLayer"></g>
+            <g id="donorLayer"></g>
+            <g id="electronLayer"></g>
+            <g id="holeLayer"></g>
+            <g id="movingLayer"></g>
+          </svg>
+        </div>
+        <div class="stage-footer">
+          <div class="legend" aria-label="Diagram legend">
+            <span class="legend-item"><i class="legend-symbol atom"></i>Si atom</span>
+            <span class="legend-item"><i class="legend-symbol e"></i>Bond electron</span>
+            <span class="legend-item"><i class="legend-symbol h"></i>Hole (+)</span>
+            <span class="legend-item"><i class="legend-symbol valid"></i>Clickable neighbor</span>
+          </div>
+          <span class="stage-hint">Click a glowing neighbor · or use Auto</span>
+        </div>
+      </section>
+
+      <aside class="dashboard" aria-label="Simulation controls">
+        <section class="panel">
+          <h2 class="panel-title"><span class="number">01</span> Create a pair</h2>
+          <button type="button" class="primary-btn" id="generateBtn"><span aria-hidden="true">✦</span> Generate electron–hole pair</button>
+          <p class="small-help">Energy promotes one bonding electron into the conduction band, leaving a hole behind.</p>
+        </section>
+
+        <section class="panel">
+          <h2 class="panel-title"><span class="number">02</span> Move the hole</h2>
+          <div class="mode-switch" role="group" aria-label="Hole movement mode">
+            <button type="button" id="manualBtn" class="mode-btn active" aria-pressed="true">✋ Manual clicks</button>
+            <button type="button" id="autoBtn" class="mode-btn" aria-pressed="false">▶ Auto move</button>
+          </div>
+          <p class="small-help" id="modeHelp">Click a highlighted electron next to the hole. Each click makes exactly one hop.</p>
+          <div class="slider-header"><label for="speedSlider">Animation speed</label><output id="speedValue" for="speedSlider">1.0×</output></div>
+          <input id="speedSlider" type="range" min="0.5" max="6" step="0.5" value="1" aria-label="Movement animation speed">
+          <div class="range-ends"><span>Slow · 0.5×</span><span>Fast · 6×</span></div>
+          <div class="row-buttons">
+            <button type="button" id="oneHopBtn" class="outline-btn" disabled>One random hop</button>
+            <button type="button" id="recombineBtn" class="outline-btn" disabled>Recombine</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2 class="panel-title"><span class="number">03</span> Observe</h2>
+          <div class="stats" aria-live="polite">
+            <div class="stat"><strong id="pairCount">0</strong><span>e− / h+ pairs</span></div>
+            <div class="stat"><strong id="hopCount">0</strong><span>hole hops</span></div>
+            <div class="stat"><strong id="electronCount">0</strong><span>free e−</span></div>
+          </div>
+          <div id="instruction" class="instruction" aria-live="polite">Press <strong>Generate electron–hole pair</strong> to begin.</div>
+          <button type="button" id="resetBtn" class="outline-btn" style="margin-top:12px;padding:10px;">↺ Reset demonstration</button>
+        </section>
+      </aside>
+    </div>
+
+    <div class="caption-grid">
+      <section class="explain">
+        <h2>The key idea: a hole is an <em>absence</em> of an electron.</h2>
+        <p>When an electron in a neighboring covalent bond moves into the missing-electron state, it leaves a new vacancy in its former bond. Therefore the hole <strong>appears to move opposite to the electron hop</strong>. The promoted conduction electron is shown separately in the top band.</p>
+        <div class="motion-diagram">
+          <span class="motion-chip">Electron: neighbor → vacancy</span>
+          <span class="motion-separator">⇄</span>
+          <span class="motion-chip orange">Hole: vacancy → neighbor</span>
+        </div>
+      </section>
+      <section class="model-note"><strong>Teaching-model note.</strong> Silicon has a 3D tetrahedral crystal structure. This 2D bond-site lattice is a simplified visualization; each line represents a covalent bond containing a shared electron pair. The speed slider changes <em>display speed only</em>, not physical carrier mobility. With no applied electric field, thermal motion has no preferred net direction.</section>
+    </div>
+  </main>
+  <script>
+    (() => {
+      'use strict';
+      const NS = 'http://www.w3.org/2000/svg';
+      const $ = id => document.getElementById(id);
+      const layer = {
+        lines:$('bondLines'), atoms:$('atomLayer'), trail:$('trailLayer'),
+        donors:$('donorLayer'), electrons:$('electronLayer'),
+        hole:$('holeLayer'), moving:$('movingLayer'), decor:$('gridDecor')
+      };
+      const COLS=8, ROWS=6, LEFT=93, TOP=198, DX=102, DY=65;
+      const nodes=[], bonds=[], adjacent=[];
+      let occupancy=[], hole=null, freeElectron=false, animation=null;
+      let hops=0, lastDonor=null, trail=[], speed=1, mode='manual';
+      let countdown=0, lastFrame=0, time=0, freePos={x:640,y:77}, nextSeed=0;
+      const svg = (tag, attrs={}, parent=null, text=null) => {
+        const el = document.createElementNS(NS,tag);
+        for (const [key,value] of Object.entries(attrs)) el.setAttribute(key,String(value));
+        if (text !== null) el.textContent = text;
+        if (parent) parent.appendChild(el);
+        return el;
+      };
+      const setText = (id, text) => { $(id).textContent = text; };
+      const nodeIndex=(c,r)=>r*COLS+c;
+      const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+      const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+      const clear=(el)=>{ while(el.firstChild) el.removeChild(el.firstChild); };
+      const ease=t=>t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+      function buildLattice(){
+        for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+          nodes.push({id:nodeIndex(c,r),x:LEFT+c*DX,y:TOP+r*DY});
+        }
+        function makeBond(a,b){
+          const A=nodes[a],B=nodes[b], mx=(A.x+B.x)/2,my=(A.y+B.y)/2;
+          const horizontal=A.y===B.y;
+          const perp=horizontal?{x:0,y:1}:{x:1,y:0};
+          const dots=[-6.4,6.4].map(off=>({x:mx+perp.x*off,y:my+perp.y*off}));
+          bonds.push({id:bonds.length,a,b,mid:{x:mx,y:my},dots,horizontal});
+        }
+        for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+          if(c<COLS-1)makeBond(nodeIndex(c,r),nodeIndex(c+1,r));
+          if(r<ROWS-1)makeBond(nodeIndex(c,r),nodeIndex(c,r+1));
+        }
+        occupancy=bonds.map(()=>[true,true]);
+        bonds.forEach((b,i)=>{
+          adjacent[i]=bonds.filter(o=>o.id!==i&&(o.a===b.a||o.a===b.b||o.b===b.a||o.b===b.b)).map(o=>o.id);
+          svg('line',{x1:nodes[b.a].x,y1:nodes[b.a].y,x2:nodes[b.b].x,y2:nodes[b.b].y,class:'bond-line'},layer.lines);
+        });
+        nodes.forEach(n=>{
+          const g=svg('g',{},layer.atoms);
+          svg('circle',{cx:n.x,cy:n.y,r:17.5,class:'atom-node'},g);
+          svg('text',{x:n.x,y:n.y+.7,class:'atom-text'},g,'Si');
+        });
+        for(let r=0;r<ROWS;r++){
+          svg('line',{x1:'38',y1:TOP+r*DY,x2:'870',y2:TOP+r*DY,stroke:'#243c53','stroke-width':'.75','stroke-dasharray':'1 12',opacity:'.45'},layer.decor);
+        }
+      }
+      function holePoint(){ return hole ? bonds[hole.bond].dots[hole.dot] : null; }
+      function availableDonors(){
+        return hole ? adjacent[hole.bond].filter(i=>occupancy[i][0]||occupancy[i][1]) : [];
+      }
+      function readyForHop(){ return !!hole && !animation; }
+      function styleUI(){
+        const active=!!hole;
+        $('manualBtn').classList.toggle('active',mode==='manual');
+        $('autoBtn').classList.toggle('active',mode==='auto');
+        $('manualBtn').setAttribute('aria-pressed',String(mode==='manual'));
+        $('autoBtn').setAttribute('aria-pressed',String(mode==='auto'));
+        $('modeHelp').textContent=mode==='manual'
+          ? 'Click a highlighted electron next to the hole. Each click makes exactly one hop.'
+          : 'Auto mode selects neighboring electrons for a random sequence of hole hops.';
+        $('oneHopBtn').disabled=!readyForHop();
+        $('recombineBtn').disabled=!active || !!animation || !freeElectron;
+        setText('pairCount',active?'1':'0');
+        setText('electronCount',freeElectron?'1':'0');
+        setText('hopCount',String(hops));
+        const animated=!!animation || (mode==='auto' && !!hole);
+        $('statusDot').classList.toggle('live',animated || (!!hole&&!animation));
+        if(animation && animation.kind==='excite')setText('stageStatus','Creating an electron–hole pair…');
+        else if(animation && animation.kind==='recombine')setText('stageStatus','Electron–hole recombination…');
+        else if(animation)setText('stageStatus','Electron hops → hole shifts');
+        else if(hole)setText('stageStatus',mode==='auto'?'Automatic motion running':'Click a glowing neighboring electron');
+        else setText('stageStatus','Ready to generate a pair');
+      }
+      function info(text){ $('instruction').textContent=text; }
+      function render(){
+        clear(layer.electrons);clear(layer.hole);clear(layer.donors);clear(layer.trail);
+        // The fading amber trace records the apparent hole displacement.
+        trail.slice(-14).forEach((step,i,all)=>{
+          const fade=.12+.57*((i+1)/all.length);
+          svg('line',{x1:step.from.x,y1:step.from.y,x2:step.to.x,y2:step.to.y,
+            stroke:'#ffab5d','stroke-width':i===all.length-1?3.3:2.3,
+            'stroke-linecap':'round','stroke-dasharray':i===all.length-1?'none':'3 5',
+            opacity:fade,'marker-end':i===all.length-1?'url(#holeArrow)':''},layer.trail);
+        });
+        const eligible=animation?[]:availableDonors();
+        const validSet=new Set(eligible);
+        for(const bond of bonds){
+          const valid=validSet.has(bond.id);
+          const g=svg('g',{class:'electron-pair'+(valid?' eligible':''),
+            ...(valid?{tabindex:'0',role:'button','aria-label':'Move an electron from a neighboring bond into the hole'}:{})},layer.electrons);
+          if(valid){
+            svg('ellipse',{cx:bond.mid.x,cy:bond.mid.y,rx:21,ry:20,class:'halo'},g);
+          }
+          for(let j=0;j<2;j++){
+            if(occupancy[bond.id][j]){
+              const pt=bond.dots[j];svg('circle',{cx:pt.x,cy:pt.y,r:5.5,class:'electron'},g);
+            }
+          }
+          if(valid){
+            svg('circle',{cx:bond.mid.x,cy:bond.mid.y,r:21,class:'hit-area'},g);
+            g.addEventListener('click',()=>makeHop(bond.id));
+            g.addEventListener('keydown',ev=>{
+              if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();makeHop(bond.id);}
+            });
+          }
+        }
+        if(hole){
+          const p=holePoint();
+          svg('circle',{cx:p.x,cy:p.y,r:19.5,fill:'#ff9b4b',opacity:'.11',filter:'url(#largeGlow)'},layer.hole);
+          svg('circle',{cx:p.x,cy:p.y,r:16.5,class:'vacancy-halo hole-pulse'},layer.hole);
+          svg('circle',{cx:p.x,cy:p.y,r:9.25,class:'vacancy-core'},layer.hole);
+          svg('text',{x:p.x,y:p.y+0.6,class:'vacancy-plus'},layer.hole,'+');
+        }
+        $('freeElectron').style.display=freeElectron && !(animation && animation.kind==='recombine')?'':'none';
+        setText('conductionCaption',freeElectron?'Promoted, mobile electron (e−)':'No free electron yet — excite one below');
+        styleUI();
+      }
+      function resetData(){
+        occupancy=bonds.map(()=>[true,true]); hole=null; freeElectron=false; animation=null;
+        hops=0;lastDonor=null;trail=[];countdown=0;clear(layer.moving);
+      }
+      function selectedStart(){
+        const starts=bonds.filter(b=>b.mid.x>345&&b.mid.x<555&&b.mid.y>285&&b.mid.y<410);
+        return starts[(nextSeed++)%starts.length] || bonds[Math.floor(bonds.length/2)];
+      }
+      function startPair(){
+        resetData();
+        const b=selectedStart();
+        const dot=nextSeed%2;
+        occupancy[b.id][dot]=false;
+        hole={bond:b.id,dot};
+        const p=b.dots[dot];
+        animation={kind:'excite',progress:0,from:{x:p.x,y:p.y},to:{x:600,y:77},duration:900};
+        info('An electron is being excited out of a covalent bond. The empty state left behind is a hole (+).');
+        render();
+      }
+      function selectElectron(fromBond){
+        const target=holePoint(), bond=bonds[fromBond];
+        let best=0, score=Infinity;
+        for(let j=0;j<2;j++)if(occupancy[fromBond][j]){
+          const d=distance(bond.dots[j],target);
+          if(d<score){score=d;best=j;}
+        }
+        return best;
+      }
+      function makeHop(bondId){
+        if(!readyForHop()||!availableDonors().includes(bondId))return;
+        const fromDot=selectElectron(bondId),from=bonds[bondId].dots[fromDot];
+        const target=holePoint();
+        const previousHole={...hole};
+        occupancy[bondId][fromDot]=false;
+        animation={kind:'hop',progress:0,duration:830,from:{...from},to:{...target},
+          previousHole,newHole:{bond:bondId,dot:fromDot}};
+        countdown=0;
+        render();
+      }
+      function direction(dx,dy){
+        const h=dx>9?'right':dx< -9?'left':'';
+        const v=dy>9?'down':dy< -9?'up':'';
+        return v&&h?v+'-'+h:(v||h||'nearby');
+      }
+      function finishHop(motion){
+        occupancy[motion.previousHole.bond][motion.previousHole.dot]=true;
+        hole=motion.newHole;
+        hops++;
+        const end=bonds[motion.newHole.bond].dots[motion.newHole.dot];
+        trail.push({from:motion.to,to:{...end}});
+        if(trail.length>32)trail.shift();
+        lastDonor=motion.previousHole.bond;
+        info('Hop '+hops+': a bonding electron filled the empty state. The hole moved '+
+          direction(end.x-motion.to.x,end.y-motion.to.y)+' — opposite to the electron.');
+      }
+      function chooseAutomaticHop(){
+        const options=availableDonors();
+        if(!options.length)return;
+        const nonreverse=options.filter(id=>id!==lastDonor);
+        const pool=nonreverse.length?nonreverse:options;
+        // A gentle directional persistence makes the displacement easier to follow.
+        // Movement remains a random walk, not a claimed physical mobility calculation.
+        makeHop(pool[Math.floor(Math.random()*pool.length)]);
+      }
+      function startRecombination(){
+        if(!hole||animation||!freeElectron)return;
+        mode='manual';
+        animation={kind:'recombine',progress:0,duration:920,from:{...freePos},to:{...holePoint()}};
+        info('The conduction electron is returning to fill the hole. The electron–hole pair recombines.');
+        render();
+      }
+      function makeMovingSprite(pt,kind){
+        const g=svg('g',{},layer.moving);
+        svg('circle',{cx:pt.x,cy:pt.y,r:16,fill:'#40c8fa',opacity:'.15',filter:'url(#largeGlow)'},g);
+        svg('circle',{cx:pt.x,cy:pt.y,r:8.1,fill:'#74ecff',stroke:'#effeff','stroke-width':'1.5'},g);
+        if(kind==='hop'){
+          svg('circle',{cx:pt.x,cy:pt.y,r:11.5,fill:'none',stroke:'#67dbff','stroke-width':'1',opacity:'.55'},g);
+        }
+      }
+      function tick(now){
+        let dt=lastFrame?clamp(now-lastFrame,0,50):16;
+        lastFrame=now;time+=dt;
+        if(freeElectron && !(animation&&animation.kind==='recombine')){
+          freePos={x:590+183*Math.sin(time*.00085),y:78+13*Math.sin(time*.0016+.6)};
+          $('freeElectron').setAttribute('transform',`translate(${freePos.x.toFixed(2)},${freePos.y.toFixed(2)})`);
+        }
+        if(animation){
+          const m=animation;
+          m.progress=Math.min(1,m.progress+dt*(m.kind==='hop'?speed:1)/m.duration);
+          const t=ease(m.progress);
+          const x=m.from.x+(m.to.x-m.from.x)*t;
+          const y=m.from.y+(m.to.y-m.from.y)*t - (m.kind==='hop'?17:70)*Math.sin(Math.PI*t);
+          clear(layer.moving);makeMovingSprite({x,y},m.kind);
+          if(m.progress>=1){
+            clear(layer.moving);animation=null;
+            if(m.kind==='excite'){
+              freeElectron=true;
+              freePos={x:600,y:77};
+              info('Pair created! The promoted electron is in the conduction band. Click a glowing neighboring bond electron to move the hole.');
+            } else if(m.kind==='hop'){
+              finishHop(m);
+            } else if(m.kind==='recombine'){
+              occupancy[hole.bond][hole.dot]=true;hole=null;freeElectron=false;
+              trail=[];lastDonor=null;mode='manual';countdown=0;
+              info('Recombination complete: the free electron filled the hole. Generate a new pair to start again.');
+            }
+            render();
+          }
+        } else if(mode==='auto'&&hole){
+          countdown+=dt*speed;
+          if(countdown>=380){countdown=0;chooseAutomaticHop();}
+        }
+        requestAnimationFrame(tick);
+      }
+      $('generateBtn').addEventListener('click',startPair);
+      $('manualBtn').addEventListener('click',()=>{mode='manual';countdown=0;styleUI();});
+      $('autoBtn').addEventListener('click',()=>{
+        mode='auto';countdown=0;
+        if(!hole)info('Select Generate electron–hole pair first. Auto mode will then move the hole.');
+        styleUI();
+      });
+      $('speedSlider').addEventListener('input',e=>{
+        speed=Number(e.target.value);setText('speedValue',speed.toFixed(1)+'×');
+      });
+      $('oneHopBtn').addEventListener('click',()=>{if(readyForHop())chooseAutomaticHop();});
+      $('recombineBtn').addEventListener('click',startRecombination);
+      $('resetBtn').addEventListener('click',()=>{
+        mode='manual';resetData();render();info('Lattice restored. Generate a pair to demonstrate electron excitation and hole transport again.');
+      });
+      buildLattice();render();requestAnimationFrame(tick);
+    })();
+  </script>
+</body>
+</html>
